@@ -3,7 +3,7 @@
 
 module classification (
     input  [0:255] test_vector, // Flattened test vector: 64 values × 4 bits = 256 bits
-    output         result       // Output decision: 1 indicates (for example) healthy
+    output         result       // Output decision: 1 indicates (for example) diseased
 );
     // Instantiate BRAMs for all 64 entries using a generate loop.
     // The outputs are collected in arrays.
