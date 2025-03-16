@@ -12,7 +12,7 @@ module bram_d #(
     (* RAM_STYLE = "BLOCK" *) reg [RAM_WIDTH-1:0] b_ram [0:(2**RAM_ADDR_BITS_VECTOR)-1];
 
     initial begin
-        $readmemb("path/to/healthy single column vector file", b_ram,
+        $readmemb("path/to/diseased single column vector file", b_ram,
                   INIT_START_ADDR_VECTOR, INIT_END_ADDR_VECTOR);
     end
 
