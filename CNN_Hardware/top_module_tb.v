@@ -23,7 +23,7 @@ module cnn_classifier_tb;
         // Wait for convolution to complete
         #2000;
         
-        // Open a file for writing the feature map output
+       
      
         
         $display("Feature Map Output:");
