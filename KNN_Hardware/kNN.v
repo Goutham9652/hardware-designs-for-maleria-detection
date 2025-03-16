@@ -4,14 +4,14 @@
 module kNN (
     input clk,
     input rst,
-    input [255:0] test_image,
+    input [255:0] test_image,   // this is the bitstream of 16x16 binary matrix (preprocessed image's matrix)
     input valid,
     output reg [8:0] current_min,
     output reg [8:0] min_row,
     output reg result
 );
 
-    reg [255:0] reference_image;
+    reg [255:0] reference_image;   // temp reg for storing fetched data from the Block Ram
     reg [255:0] difference_image;
     reg [8:0] white_pixel_count;
     
@@ -30,7 +30,6 @@ module kNN (
     bram #(
         .RAM_WIDTH(256),
         .RAM_ADDR_BITS(9),
-        .DATA_FILE("knn_rom.txt"),
         .INIT_START_ADDR(0),
         .INIT_END_ADDR(299)
     ) bram_inst (
