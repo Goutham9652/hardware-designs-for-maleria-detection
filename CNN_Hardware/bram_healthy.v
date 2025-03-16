@@ -13,7 +13,7 @@ module bram_h #(
     (* RAM_STYLE = "BLOCK" *) reg [RAM_WIDTH-1:0] b_ram [0:(2**RAM_ADDR_BITS_VECTOR)-1];
 
     initial begin
-        $readmemb("D:/Eng_Stuff/majorProject/CNN_16/h_scv.txt", b_ram,
+        $readmemb("path/to/healthy single column vector", b_ram,
                   INIT_START_ADDR_VECTOR, INIT_END_ADDR_VECTOR);
     end
 
