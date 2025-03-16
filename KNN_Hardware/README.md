@@ -54,7 +54,13 @@
 * The index m of the closest match is stored.
   
 **Step 4: Classification Decision**
-* If m ≤ N/2, the test image is classified as Healthy.
+* If m ≤ N/2, the test image is classified as Healthy. 
 * If m > N/2, the test image is classified as Diseased.
 
 for reference, read the research article :  [ https://ieeexplore.ieee.org/document/10504831 ]
+
+Here I have created a text file that contains 300 rows, each row has a blood cell's binary matrix's flattened vector which we have taken it as a reference image in verilog module.
+
+_note that the file has 300 images_ 
+* 150 uninfected (row 1 to row 150  )
+* 150 infected   (row 151 to row 300)
