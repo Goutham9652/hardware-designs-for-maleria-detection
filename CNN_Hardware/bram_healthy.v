@@ -1,23 +1,21 @@
-`timescale 1ns / 1ps
-
-
 module bram_h #(
-    parameter RAM_WIDTH             = 4,
-    parameter RAM_ADDR_BITS_VECTOR  = 6,
-    parameter INIT_START_ADDR_VECTOR= 0,
-    parameter INIT_END_ADDR_VECTOR  = 63
+    parameter RAM_WIDTH = 4,
+    parameter RAM_DEPTH = 1024,
+    parameter INIT_FILE = "D:/Eng_Stuff/majorProject/ROMs/cnn/h_scv_64x64.txt"
 )(
-    input  [RAM_ADDR_BITS_VECTOR-1:0] addr_vector, 
-    output [RAM_WIDTH-1:0]            dataOut 
+    input clk,
+    input [$clog2(RAM_DEPTH)-1:0] addr,
+    output reg [RAM_WIDTH-1:0] data_out
 );
-    (* RAM_STYLE = "BLOCK" *) reg [RAM_WIDTH-1:0] b_ram [0:(2**RAM_ADDR_BITS_VECTOR)-1];
+    (* ram_style = "block" *) reg [RAM_WIDTH-1:0] bram [0:RAM_DEPTH-1];
 
     initial begin
-        $readmemb("path/to/healthy single column vector", b_ram,
-                  INIT_START_ADDR_VECTOR, INIT_END_ADDR_VECTOR);
+        if (INIT_FILE != "") begin
+            $readmemb(INIT_FILE, bram);
+        end
     end
 
-    // Asynchronous read
-    assign dataOut = b_ram[addr_vector];
-    
+    always @(posedge clk) begin
+        data_out <= bram[addr];
+    end
 endmodule
