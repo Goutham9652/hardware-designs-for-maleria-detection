@@ -1,64 +1,95 @@
 `timescale 1ns / 1ps
 
-
-module classification (
-    input  [0:255] test_vector, // Flattened test vector: 64 values × 4 bits = 256 bits
-    output         result       // Output decision: 1 indicates (for example) diseased
+module classification #(
+    parameter VECTOR_SIZE = 1024,    // 16, 256, or 1024
+    parameter VECTOR_BITS = VECTOR_SIZE * 4
+) (
+    input clk,                      // Clock signal
+    input rst,                      // Reset signal
+    input start,                    // Start classification
+    input [VECTOR_BITS-1:0] test_vector,
+    output reg result,              // Classification result
+    output reg done                 // Done signal
 );
-    // Instantiate BRAMs for all 64 entries using a generate loop.
-    // The outputs are collected in arrays.
-    wire [3:0] h_mem[0:63];
-    wire [3:0] d_mem[0:63];
+
+    // BRAM instances (now synchronous)
+    wire [3:0] h_data_out;
+    wire [3:0] d_data_out;
+    reg [$clog2(VECTOR_SIZE)-1:0] addr;
     
-    genvar idx;
-    generate
-        for (idx = 0; idx < 64; idx = idx+1) begin : bram_inst
-            bram_h h_inst (
-                .addr_vector(idx),
-                .dataOut(h_mem[idx])
-            );
-            bram_d d_inst (
-                .addr_vector(idx),
-                .dataOut(d_mem[idx])
-            );
-        end
-    endgenerate
+    bram_h h_inst (
+        .clk(clk),
+        .addr(addr),
+        .data_out(h_data_out)
+    );
     
-    // Compute the accumulated distances using a combinational process.
-    integer i;
-    reg [10:0] distance_h;
-    reg [10:0] distance_d;
-    reg        result_reg;
-    reg [3:0] test_val;
-    reg [3:0] diff_h;
-    reg [3:0] diff_d;
-    always @(*) begin
-        distance_h = 0;
-        distance_d = 0;
-        for (i = 0; i < 64; i = i + 1) begin
-            // Extract the 4-bit test value corresponding to index i
-            
-            test_val = test_vector[i*4 +: 4];
-            
-            // Compute absolute difference for healthy reference
-            if (test_val >= h_mem[i])
-                diff_h = test_val - h_mem[i];
-            else
-                diff_h = h_mem[i] - test_val;
-            
-            // Compute absolute difference for diseased reference
-            if (test_val >= d_mem[i])
-                diff_d = test_val - d_mem[i];
-            else
-                diff_d = d_mem[i] - test_val;
+    bram_d d_inst (
+        .clk(clk),
+        .addr(addr),
+        .data_out(d_data_out)
+    );
+
+    // State machine
+    localparam IDLE = 0;
+    localparam CALCULATING = 1;
+    localparam FINISHED = 2;
+    
+    reg [1:0] state;
+    
+    reg [15:0] distance_h;
+    reg [15:0] distance_d;
+    reg [3:0] test_val, diff_h,diff_d;
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            state <= IDLE;
+            addr <= 0;
+            distance_h <= 0;
+            distance_d <= 0;
+            result <= 0;
+            done <= 0;
+        end else begin
+            case (state)
+                IDLE: begin
+                    done <= 0;
+                    if (start) begin
+                        state <= CALCULATING;
+                        addr <= 0;
+                        distance_h <= 0;
+                        distance_d <= 0;
+                    end
+                end
                 
-            distance_h = distance_h + diff_h;
-            distance_d = distance_d + diff_d;
+                CALCULATING: begin
+                    // Get absolute differences
+                     test_val = test_vector[addr*4 +:4];
+                     diff_h = (test_val >= h_data_out) ? 
+                                      (test_val - h_data_out) : 
+                                      (h_data_out - test_val);
+                    diff_d = (test_val >= d_data_out) ? 
+                                      (test_val - d_data_out) : 
+                                      (d_data_out - test_val);
+                    
+                    // Accumulate distances
+                    distance_h <= distance_h + diff_h;
+                    distance_d <= distance_d + diff_d;
+                    
+                    // Check if finished
+                    if (addr == VECTOR_SIZE-1) begin
+                        state <= FINISHED;
+                        result <= (distance_h + diff_h < distance_d + diff_d) ? 1'b0 : 1'b1;
+                    end else begin
+                        addr <= addr + 1;
+                    end
+                end
+                
+                FINISHED: begin
+                    done <= 1;
+                    if (~start) begin
+                        state <= IDLE;
+                    end
+                end
+            endcase
         end
-        // Final decision: result is 1 if healthy distance is less than diseased distance.
-        result_reg = (distance_h < distance_d) ? 1'b0 : 1'b1;
     end
-    
-    assign result = result_reg;
-    
+
 endmodule
