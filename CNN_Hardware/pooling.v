@@ -1,30 +1,70 @@
 `timescale 1ns / 1ps
 
-module pooling (
-    input [0:1023] input_matrix,  // Flattened 16x16 input (4-bit elements)
-    output [0:255] output_matrix  // Flattened 8x8 output (4-bit elements)
+module pooling #(
+    parameter INPUT_SIZE = 64,      // After padding
+    parameter OUTPUT_SIZE = INPUT_SIZE / 2,
+    parameter INPUT_BITS = INPUT_SIZE * INPUT_SIZE * 4,
+    parameter OUTPUT_BITS = OUTPUT_SIZE * OUTPUT_SIZE * 4
+) (
+    input clk,                      // Clock signal
+    input rst,                      // Reset signal
+    input start,                    // Start signal to begin pooling
+    input [INPUT_BITS-1:0] input_matrix,
+    output reg [OUTPUT_BITS-1:0] output_matrix,
+    output reg done                 // Done signal when pooling completes
 );
 
-    // Generate 8x8 output by processing 2x2 blocks
-    generate
-        genvar i, j;
-        for (i = 0; i < 8; i = i + 1) begin : ROW
-            for (j = 0; j < 8; j = j + 1) begin : COL
-                // Extract 2x2 block from input_matrix
-                wire [3:0] a = input_matrix[ ((2*i)*16 + 2*j)*4 +:4];
-                wire [3:0] b = input_matrix[ ((2*i)*16 + (2*j+1))*4 +:4];
-                wire [3:0] c = input_matrix[ ((2*i+1)*16 + 2*j)*4 +:4];
-                wire [3:0] d = input_matrix[ ((2*i+1)*16 + (2*j+1))*4 +:4];
-
-                // Compute max of the 2x2 block
-                wire [3:0] max1 = (a > b) ? a : b;
-                wire [3:0] max2 = (c > d) ? c : d;
-                wire [3:0] max_final = (max1 > max2) ? max1 : max2;
-
-                // Assign to output
-                assign output_matrix[(i*8 + j)*4 +:4] = max_final;
-            end
+    // Define state machine states
+    localparam IDLE = 1'b0;
+    localparam PROCESSING = 1'b1;
+    
+    // State register
+    reg state;
+    reg [3:0] a,b,c,d,max1, max2, max_final;
+    
+    integer i,j;
+    // Combinational pooling logic (now registered)
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            output_matrix <= 0;
+            done <= 0;
+            state <= IDLE;
+        end else begin
+            case (state)
+                IDLE: begin
+                    done <= 0;
+                    if (start) begin
+                        state <= PROCESSING;
+                        // Apply max pooling in one clock cycle
+                        for (i = 0; i < OUTPUT_SIZE; i = i + 1) begin
+                            for ( j = 0; j < OUTPUT_SIZE; j = j + 1) begin
+                                // Get the 2x2 window values
+                                  a = input_matrix[((2*i)*INPUT_SIZE + 2*j)*4 +:4];
+                                  b = input_matrix[((2*i)*INPUT_SIZE + (2*j+1))*4 +:4];
+                                  c = input_matrix[((2*i+1)*INPUT_SIZE + 2*j)*4 +:4];
+                                  d = input_matrix[((2*i+1)*INPUT_SIZE + (2*j+1))*4 +:4];
+                                
+                                // Find maximum in 2x2 window
+                                  max1 = (a > b) ? a : b;
+                                  max2 = (c > d) ? c : d;
+                                  max_final = (max1 > max2) ? max1 : max2;
+                                
+                                output_matrix[(i*OUTPUT_SIZE + j)*4 +:4] <= max_final;
+                            end
+                        end
+                    end
+                end
+                
+                PROCESSING: begin
+                    
+                    done <= 1;
+                    
+                    if (~start) begin  // Wait for start to go low before returning to IDLE
+                        state <= IDLE;
+                    end
+                end
+            endcase
         end
-    endgenerate
+    end
 
 endmodule
