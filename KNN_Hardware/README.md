@@ -57,6 +57,13 @@
 * If m ≤ N/2, the test image is classified as Healthy. 
 * If m > N/2, the test image is classified as Diseased.
 
+here are the FSM and the block diagram of my Modular approach:
+
+![k-NN_FSM drawio](https://github.com/user-attachments/assets/e0d74072-4ea3-4d7d-b947-0d901b1bf9ee)
+![k-NN_block drawio](https://github.com/user-attachments/assets/8bdc5674-d8a5-49dd-a292-54f3e2f11058)
+
+
+
 for reference, read the research article :  [ https://ieeexplore.ieee.org/document/10504831 ]
 
 Here I have created a text file that contains 300 rows, each row has a blood cell's binary matrix's flattened vector which we have taken it as a reference image in verilog module.
